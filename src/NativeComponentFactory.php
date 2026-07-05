@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionNamedType;
+use TTBooking\TwigComponent\Concerns\ValidatesProps;
 
 /**
  * Standalone-фабрика компонентов: new $class(...$props) по именованным аргументам.
@@ -21,6 +22,8 @@ use ReflectionNamedType;
  */
 class NativeComponentFactory implements ComponentFactory
 {
+    use ValidatesProps;
+
     public function __construct(private readonly ?ContainerInterface $container = null) {}
 
     public function create(string $componentClass, array $props): object
@@ -61,19 +64,5 @@ class NativeComponentFactory implements ComponentFactory
         }
 
         return new $componentClass(...$arguments);
-    }
-
-    /**
-     * @param  array<string, mixed>  $props
-     * @param  list<string>  $allowed
-     */
-    private function assertKnownProps(string $componentClass, array $props, array $allowed): void
-    {
-        if ($unknown = array_diff(array_keys($props), $allowed)) {
-            throw new InvalidArgumentException(sprintf(
-                'Неизвестные props [%s] у компонента %s; конструктор принимает: [%s]',
-                implode(', ', $unknown), $componentClass, implode(', ', $allowed),
-            ));
-        }
     }
 }

@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\DataConfig;
 use TTBooking\TwigComponent\ComponentFactory;
+use TTBooking\TwigComponent\Concerns\ValidatesProps;
 use TTBooking\TwigComponent\TwigComponent;
 
 /**
@@ -17,15 +18,19 @@ use TTBooking\TwigComponent\TwigComponent;
  */
 class LaravelComponentFactory implements ComponentFactory
 {
+    use ValidatesProps;
+
     public function create(string $componentClass, array $props): object
     {
-        $this->assertKnownProps($componentClass, $props);
-
         if (is_subclass_of($componentClass, Data::class)) {
+            $this->assertKnownProps($componentClass, $props, $this->dataPropNames($componentClass));
+
             return $componentClass::from($props);
         }
 
         if (is_subclass_of($componentClass, TwigComponent::class)) {
+            $this->assertKnownProps($componentClass, $props, $this->constructorPropNames($componentClass));
+
             return app($componentClass, $props);
         }
 
@@ -35,44 +40,23 @@ class LaravelComponentFactory implements ComponentFactory
     }
 
     /**
-     * Ключ props, не совпадающий ни с одним известным пропом компонента, — опечатка:
-     * и Data::from(), и контейнер молча игнорируют неизвестные ключи, из-за чего проп
-     * с дефолтом остаётся дефолтным без какой-либо ошибки.
+     * Допустимые имена props Data-компонента — из структуры laravel-data (свойства +
+     * их MapInputName-алиасы, включая non-promoted): reflection конструктора их не видит.
      *
-     * Для Data-компонентов известные имена берутся из структуры laravel-data (свойства +
-     * их MapInputName-алиасы, включая non-promoted) — reflection конструктора их не видит.
-     * Для виджетов — параметры конструктора; DI-зависимости в списке допустимых неизбежны
-     * (по имени параметра сервис от пропа не отличить), но попытка передать их пропом
-     * упадёт дальше на инстанцировании с внятной обёрткой.
+     * @return list<string>
      */
-    protected function assertKnownProps(string $componentClass, array $props): void
+    protected function dataPropNames(string $componentClass): array
     {
-        if ($props === []) {
-            return;
-        }
+        $allowed = [];
 
-        if (is_subclass_of($componentClass, Data::class)) {
-            $allowed = [];
+        foreach (app(DataConfig::class)->getDataClass($componentClass)->properties as $property) {
+            $allowed[] = $property->name;
 
-            foreach (app(DataConfig::class)->getDataClass($componentClass)->properties as $property) {
-                $allowed[] = $property->name;
-
-                if ($property->inputMappedName !== null) {
-                    $allowed[] = $property->inputMappedName;
-                }
+            if ($property->inputMappedName !== null) {
+                $allowed[] = $property->inputMappedName;
             }
-        } else {
-            $constructor = (new \ReflectionClass($componentClass))->getConstructor();
-            $allowed = $constructor
-                ? array_map(fn ($parameter) => $parameter->getName(), $constructor->getParameters())
-                : [];
         }
 
-        if ($unknown = array_diff(array_keys($props), $allowed)) {
-            throw new InvalidArgumentException(sprintf(
-                'Неизвестные props [%s] у компонента %s; принимает: [%s]',
-                implode(', ', $unknown), $componentClass, implode(', ', $allowed),
-            ));
-        }
+        return $allowed;
     }
 }

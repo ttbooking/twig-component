@@ -31,7 +31,8 @@ class ExtensionTest extends CoreTestCase
     public function test_unknown_prop_key_throws_with_prop_name(): void
     {
         $this->expectException(ComponentRenderingException::class);
-        $this->expectExceptionMessageMatches('/badprop/');
+        // единый текст ошибки обеих фабрик (issue #1): «компонент принимает: [...]»
+        $this->expectExceptionMessageMatches('/badprop.*компонент принимает/u');
 
         $this->extension()->renderComponent('card', ['badprop' => 1]);
     }
