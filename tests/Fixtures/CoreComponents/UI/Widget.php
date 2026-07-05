@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests\Fixtures\Components\UI;
+namespace TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\UI;
 
 use TTBooking\TwigComponent\TwigComponent;
 
@@ -11,7 +11,7 @@ class Widget implements TwigComponent
 {
     public function template(): string
     {
-        return view('components/card')->name();
+        return 'components/card.html.twig';
     }
 
     public function context(): array

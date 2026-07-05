@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests\Fixtures\Components;
+namespace TTBooking\TwigComponent\Tests\Fixtures\CoreComponents;
 
 use RuntimeException;
 use TTBooking\TwigComponent\TwigComponent;
 
-/** Фикстура, падающая при сборке данных — для проверки обёртки ComponentRenderingException. Имя: broken. */
+/** Core-фикстура, падающая при сборке данных — для проверки обёртки ComponentRenderingException. Имя: broken. */
 class Broken implements TwigComponent
 {
     public function template(): string
     {
-        return view('components/card')->name();
+        return 'components/card.html.twig';
     }
 
     public function context(): array

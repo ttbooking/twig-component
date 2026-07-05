@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Console;
+namespace TTBooking\TwigComponent\Laravel\Console;
 
 use Illuminate\Console\Command;
 use TTBooking\TwigComponent\ComponentRegistry;

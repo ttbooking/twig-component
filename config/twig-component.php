@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+/*
+| Конфиг Laravel-интеграции (используется src/Laravel/TwigComponentServiceProvider).
+| Standalone-подключение в конфиге не нуждается: эти же значения передаются
+| аргументами конструктора ComponentRegistry напрямую.
+*/
+
 return [
 
     /*

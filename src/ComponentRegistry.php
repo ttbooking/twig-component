@@ -4,27 +4,24 @@ declare(strict_types=1);
 
 namespace TTBooking\TwigComponent;
 
-use Illuminate\Support\Str;
 use ReflectionClass;
 use Spatie\LaravelData\Data;
 use Symfony\Component\Finder\Finder;
 
 /**
- * Auto-discovery класс-компонентов Twig.
+ * Auto-discovery класс-компонентов Twig. Фреймворк-нейтрален: только файловая система,
+ * reflection и symfony/finder.
  *
  * Имя в реестре выводится из FQCN относительно базового неймспейса компонентов приложения
  * ($namespace, напр. App\View\TwigComponents\) по конвенции:
- *  - namespace-зоны (сегменты до имени класса) — Str::lower, join через ':';
- *  - имя класса — Str::kebab.
+ *  - namespace-зоны (сегменты до имени класса) — lower, join через ':';
+ *  - имя класса — kebab-case.
  * Пример: <namespace>Corporate\AgencyParamMenu -> corporate:agency-param-menu.
  * Для нестандартных имён есть seam overrides().
  *
- * Базовый неймспейс и пути — специфика приложения, инжектятся из config/twig-component.php
- * (см. TwigComponentServiceProvider): пакет не знает про App\.
- *
- * Прод читает скомпилированный манифест bootstrap/cache/twig-component.php — плоский массив
- * строк без reflection/autoload (ленивый autoload только реально рендерящегося компонента);
- * локаль без манифеста сканирует вживую. Модель — package-manifest / spatie data-structure cache.
+ * Прод читает скомпилированный манифест — плоский массив строк без reflection/autoload
+ * (ленивый autoload только реально рендерящегося компонента); локаль без манифеста
+ * сканирует вживую. Модель — package-manifest / spatie data-structure cache.
  */
 class ComponentRegistry
 {
@@ -154,18 +151,36 @@ class ComponentRegistry
      */
     public function deriveName(string $class): string
     {
-        $segments = explode('\\', Str::after($class, $this->namespace));
+        $relative = str_starts_with($class, $this->namespace)
+            ? substr($class, strlen($this->namespace))
+            : $class;
+
+        $segments = explode('\\', $relative);
         $className = array_pop($segments);
 
-        $parts = array_map(static fn (string $segment): string => Str::lower($segment), $segments);
-        $parts[] = Str::kebab($className);
+        $parts = array_map(
+            static fn (string $segment): string => mb_strtolower($segment, 'UTF-8'),
+            $segments,
+        );
+        $parts[] = self::kebab($className);
 
         return implode(':', $parts);
     }
 
     /**
-     * Инстанцируемые классы-компоненты в неймспейсе: виджеты (TwigComponent) и презентационные (Data).
-     * Protected — seam для тестов (подмена источника классов без файловой системы).
+     * Kebab-case имени класса (эквивалент Illuminate\Support\Str::kebab):
+     * дефис перед каждой заглавной, всё в нижний регистр. UI -> u-i (акронимы-зоны
+     * идут через lower, сюда попадает только имя класса).
+     */
+    private static function kebab(string $value): string
+    {
+        return mb_strtolower(preg_replace('/(.)(?=[A-Z])/u', '$1-', $value), 'UTF-8');
+    }
+
+    /**
+     * Инстанцируемые классы-компоненты в неймспейсе: виджеты (TwigComponent) и презентационные
+     * (Data, если laravel-data установлен). Protected — seam для тестов (подмена источника
+     * классов без файловой системы).
      *
      * @return list<class-string>
      */
@@ -180,7 +195,7 @@ class ComponentRegistry
         foreach (Finder::create()->files()->in($this->componentsPath)->name('*.php') as $file) {
             // getRelativePathname() отдаёт разделитель ОС — нормализуем оба варианта в '\'
             $relative = str_replace(['/', '\\'], '\\', $file->getRelativePathname());
-            $class = $this->namespace.Str::beforeLast($relative, '.php');
+            $class = $this->namespace.substr($relative, 0, -strlen('.php'));
 
             if ($this->isComponent($class)) {
                 $classes[] = $class;
@@ -199,6 +214,7 @@ class ComponentRegistry
         $reflection = new ReflectionClass($class);
 
         return $reflection->isInstantiable()
-            && ($reflection->implementsInterface(TwigComponent::class) || $reflection->isSubclassOf(Data::class));
+            && ($reflection->implementsInterface(TwigComponent::class)
+                || (class_exists(Data::class) && $reflection->isSubclassOf(Data::class)));
     }
 }

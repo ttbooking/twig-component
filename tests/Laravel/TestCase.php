@@ -2,19 +2,18 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests;
+namespace TTBooking\TwigComponent\Tests\Laravel;
 
 use Orchestra\Testbench\TestCase as Orchestra;
 use Spatie\LaravelData\LaravelDataServiceProvider;
 use TTBooking\TwigComponent\ComponentExtension;
-use TTBooking\TwigComponent\TwigComponentServiceProvider;
+use TTBooking\TwigComponent\Laravel\TwigComponentServiceProvider;
 use TwigBridge\ServiceProvider as TwigBridgeServiceProvider;
 
 /**
- * База тестов пакета: Testbench поднимает минимальное Laravel-приложение с TwigBridge и нашим
- * провайдером. БД не нужна — машинерия (парсинг/слоты/реестр/рендер) от неё не зависит.
- *
- * Реестр направлен на фикстуры (tests/Fixtures), а не на прикладные App\View\TwigComponents.
+ * База Laravel-тестов: Testbench поднимает минимальное приложение с TwigBridge и нашим
+ * провайдером — проверяется интеграционный слой (контейнер, view(), laravel-data, конфиг).
+ * Ядро (парсинг/слоты/реестр) тестируется отдельно на голом Twig в tests/Core.
  */
 abstract class TestCase extends Orchestra
 {
@@ -40,11 +39,11 @@ abstract class TestCase extends Orchestra
         $config->set('twigbridge.twig.environment.cache', false);
 
         // шаблоны компонентов-фикстур
-        $config->set('view.paths', [__DIR__.'/Fixtures/views']);
+        $config->set('view.paths', [__DIR__.'/../Fixtures/views']);
 
-        // реестр → неймспейс и путь фикстур; манифеста нет → живой скан
+        // реестр → неймспейс и путь Laravel-фикстур; манифеста нет → живой скан
         $config->set('twig-component.namespace', 'TTBooking\\TwigComponent\\Tests\\Fixtures\\Components\\');
-        $config->set('twig-component.path', __DIR__.'/Fixtures/Components');
+        $config->set('twig-component.path', __DIR__.'/../Fixtures/Components');
         $config->set('twig-component.manifest', sys_get_temp_dir().'/twig-component-test-manifest.php');
     }
 }

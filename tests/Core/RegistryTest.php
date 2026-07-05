@@ -2,28 +2,18 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests;
+namespace TTBooking\TwigComponent\Tests\Core;
 
 use TTBooking\TwigComponent\ComponentRegistry;
-use TTBooking\TwigComponent\Tests\Fixtures\Components\Card;
-use TTBooking\TwigComponent\Tests\Fixtures\Components\Dialog;
-use TTBooking\TwigComponent\Tests\Fixtures\Components\Forms\Field;
-use TTBooking\TwigComponent\Tests\Fixtures\Components\Note;
-use TTBooking\TwigComponent\Tests\Fixtures\Components\UI\Widget;
+use TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\Card;
+use TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\Dialog;
+use TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\Forms\Field;
+use TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\Note;
+use TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\UI\Widget;
 
-class RegistryTest extends TestCase
+/** Реестр фреймворк-нейтрален — тестируется без какого-либо приложения. */
+class RegistryTest extends CoreTestCase
 {
-    private const NS = 'TTBooking\\TwigComponent\\Tests\\Fixtures\\Components\\';
-
-    private function registry(?string $manifest = null): ComponentRegistry
-    {
-        return new ComponentRegistry(
-            self::NS,
-            __DIR__.'/Fixtures/Components',
-            $manifest ?? sys_get_temp_dir().'/tc-'.uniqid().'.php',
-        );
-    }
-
     public function test_derive_name_follows_convention(): void
     {
         $registry = $this->registry();
@@ -43,7 +33,7 @@ class RegistryTest extends TestCase
         $this->assertSame(Card::class, $map['card'] ?? null);
         $this->assertSame(Widget::class, $map['ui:widget'] ?? null);
         $this->assertSame(Field::class, $map['forms:field'] ?? null);
-        // презентационная (Spatie Data) ветка discovery
+        // презентационная (Spatie Data) ветка discovery — работает и без Laravel-приложения
         $this->assertSame(Note::class, $map['note'] ?? null);
         $this->assertArrayHasKey('dialog', $map);
     }
@@ -99,8 +89,8 @@ class RegistryTest extends TestCase
             protected function discoverClasses(): array
             {
                 return [
-                    'TTBooking\\TwigComponent\\Tests\\Fixtures\\Components\\UI\\Widget',
-                    'TTBooking\\TwigComponent\\Tests\\Fixtures\\Components\\Ui\\Widget',
+                    'TTBooking\\TwigComponent\\Tests\\Fixtures\\CoreComponents\\UI\\Widget',
+                    'TTBooking\\TwigComponent\\Tests\\Fixtures\\CoreComponents\\Ui\\Widget',
                 ];
             }
         };
@@ -109,25 +99,6 @@ class RegistryTest extends TestCase
         $this->expectExceptionMessageMatches('/ui:widget/');
 
         $registry->build();
-    }
-
-    public function test_container_registry_reads_manifest_instead_of_scanning(): void
-    {
-        // прод-путь: реестр из контейнера читает манифест из конфига, живой скан не выполняется
-        $manifest = tempnam(sys_get_temp_dir(), 'tcprod');
-        file_put_contents($manifest, "<?php\n\nreturn ['fake' => ".var_export(Note::class, true)."];\n");
-
-        config()->set('twig-component.manifest', $manifest);
-
-        try {
-            $registry = app(ComponentRegistry::class);
-
-            $this->assertSame(Note::class, $registry->resolve('fake'));
-            // 'card' есть только в живом скане — его отсутствие доказывает чтение манифеста
-            $this->assertNull($registry->resolve('card'));
-        } finally {
-            @unlink($manifest);
-        }
     }
 
     public function test_override_wins_over_convention(): void

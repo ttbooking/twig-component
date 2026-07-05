@@ -7,8 +7,11 @@
          failOnRisky="true"
          cacheDirectory=".phpunit.cache">
     <testsuites>
-        <testsuite name="Package">
-            <directory>tests</directory>
+        <testsuite name="Core">
+            <directory>tests/Core</directory>
+        </testsuite>
+        <testsuite name="Laravel">
+            <directory>tests/Laravel</directory>
         </testsuite>
     </testsuites>
     <source>

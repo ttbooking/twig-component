@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests\Fixtures\Components;
+namespace TTBooking\TwigComponent\Tests\Fixtures\CoreComponents;
 
 use TTBooking\TwigComponent\TwigComponent;
 
 /**
- * Фикстура-виджет, чей шаблон рендерит вложенный компонент broken — для проверки
+ * Core-фикстура, чей шаблон рендерит вложенный компонент broken — для проверки
  * цепочки вложенности в сообщении ComponentRenderingException. Имя: wrapper.
  */
 class Wrapper implements TwigComponent
 {
     public function template(): string
     {
-        return view('components/wrapper')->name();
+        return 'components/wrapper.html.twig';
     }
 
     public function context(): array

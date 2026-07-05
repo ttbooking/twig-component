@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests\Fixtures\Components;
+namespace TTBooking\TwigComponent\Tests\Fixtures\CoreComponents;
 
 use TTBooking\TwigComponent\TwigComponent;
 
 /**
- * Фикстура с зарезервированным ключом `slots` в context() — проверяет guard
+ * Core-фикстура с зарезервированным ключом `slots` в context() — проверяет guard
  * assertNoReservedContextKeys. Имя: clash.
  */
 class Clash implements TwigComponent
 {
     public function template(): string
     {
-        return view('components/note')->name();
+        return 'components/note.html.twig';
     }
 
     public function context(): array

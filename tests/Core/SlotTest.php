@@ -2,24 +2,14 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests;
-
-use Twig\Environment;
+namespace TTBooking\TwigComponent\Tests\Core;
 
 /**
- * Механика слотов на фикстурах (Card — дефолтный слот, Dialog — именованные + фолбэк).
- * Рендер через голый Twig-шаблон, как на месте вызова.
+ * Механика слотов на голом Twig (Card — дефолтный слот, Dialog — именованные + фолбэк).
+ * Рендер через шаблон-строку, как на месте вызова.
  */
-class SlotTest extends TestCase
+class SlotTest extends CoreTestCase
 {
-    private function render(string $source, array $context = []): string
-    {
-        /** @var Environment $twig */
-        $twig = app('twig');
-
-        return $twig->createTemplate($source)->render($context);
-    }
-
     public function test_tag_renders_body_into_default_slot(): void
     {
         $html = $this->render(

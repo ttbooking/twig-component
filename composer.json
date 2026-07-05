@@ -1,6 +1,6 @@
 {
     "name": "ttbooking/twig-component",
-    "description": "Класс-компоненты и слоты для Twig в Laravel: тег {% component %}, {% slot %}, auto-discovery реестр с манифест-кэшем.",
+    "description": "Класс-компоненты и слоты для Twig: тег {% component %}, {% slot %}, auto-discovery реестр с манифест-кэшем. Ядро без фреймворка + опциональная Laravel-интеграция.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -25,18 +25,20 @@
     ],
     "require": {
         "php": "^8.2",
-        "twig/twig": "^3.21",
-        "illuminate/console": "^13.0",
-        "illuminate/container": "^13.0",
-        "illuminate/support": "^13.0",
-        "illuminate/view": "^13.0",
-        "spatie/laravel-data": "^4.0",
-        "symfony/finder": "^7.0"
+        "psr/container": "^1.1 || ^2.0",
+        "symfony/finder": "^6.4 || ^7.0",
+        "twig/twig": "^3.21"
     },
     "require-dev": {
         "orchestra/testbench": "^11.0",
+        "phpunit/phpunit": "^11.5 || ^12.0",
         "rcrowe/twigbridge": "^0.14",
-        "phpunit/phpunit": "^11.5 || ^12.0"
+        "spatie/laravel-data": "^4.0"
+    },
+    "suggest": {
+        "laravel/framework": "Laravel-интеграция (^13): DI виджетов через контейнер, рендер через view(), artisan-команды манифеста",
+        "spatie/laravel-data": "Презентационные Data-компоненты (только вместе с Laravel, ^4.0)",
+        "rcrowe/twigbridge": "Мост Twig <-> Laravel views (^0.14), нужен для Laravel-интеграции"
     },
     "autoload": {
         "psr-4": {
@@ -54,7 +56,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "TTBooking\\TwigComponent\\TwigComponentServiceProvider"
+                "TTBooking\\TwigComponent\\Laravel\\TwigComponentServiceProvider"
             ]
         }
     },

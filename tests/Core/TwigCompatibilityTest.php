@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace TTBooking\TwigComponent\Tests;
+namespace TTBooking\TwigComponent\Tests\Core;
 
 /**
  * Совместимость с текущим Twig: компиляция и рендер наших тегов не должны опираться
  * на deprecated-API (то, что deprecated в Twig 3, ломается в Twig 4).
  */
-class TwigCompatibilityTest extends TestCase
+class TwigCompatibilityTest extends CoreTestCase
 {
     public function test_component_and_slot_tags_emit_no_twig_deprecations(): void
     {
@@ -24,9 +24,9 @@ class TwigCompatibilityTest extends TestCase
         });
 
         try {
-            app('twig')->createTemplate(
+            $this->render(
                 "{% component 'dialog' with { title: 'T' } %}тело{% slot 'footer' %}f{% endslot %}{% endcomponent %}"
-            )->render();
+            );
         } finally {
             restore_error_handler();
         }

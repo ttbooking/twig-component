@@ -4,27 +4,34 @@ declare(strict_types=1);
 
 namespace TTBooking\TwigComponent;
 
-use Illuminate\Support\Str;
 use InvalidArgumentException;
-use Spatie\LaravelData\Data;
-use Spatie\LaravelData\Support\DataConfig;
+use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * Расширение Twig для класс-компонентов.
+ * Расширение Twig для класс-компонентов. Ядро фреймворк-нейтрально: инстанцирование
+ * компонента делегировано ComponentFactory, рендер шаблона — TemplateRenderer.
  *
  * Два вида компонентов:
- *  - виджет (TwigComponent) — зависимости из контейнера, сам собирает данные;
- *  - презентационный (Spatie\LaravelData\Data со статическим template()) — чистые props,
- *    Data::from() даёт кастинг и ошибку при опечатке в имени пропа.
+ *  - виджет (TwigComponent) — зависимости через фабрику, сам собирает данные в context();
+ *  - презентационный (Spatie\LaravelData\Data с template()) — чистые props; доступен
+ *    только с Laravel-фабрикой (сам laravel-data вне Laravel не работает).
  *
  * Шаблон компонента рендерится в изолированном контексте: только данные компонента
  * и `this`, внешний скоуп вызывающего шаблона не протекает.
  */
 class ComponentExtension extends AbstractExtension
 {
-    public function __construct(private readonly ComponentRegistry $registry) {}
+    /**
+     * @param  string|null  $basePath  корень приложения — срезается из путей в сообщениях об ошибках
+     */
+    public function __construct(
+        private readonly ComponentRegistry $registry,
+        private readonly ComponentFactory $factory,
+        private readonly TemplateRenderer $renderer,
+        private readonly ?string $basePath = null,
+    ) {}
 
     /**
      * Стек имён рендерящихся компонентов (вложенные рендеры) — для сообщений об ошибках.
@@ -41,7 +48,10 @@ class ComponentExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('component', [$this, 'renderComponent'], ['is_safe' => ['html']]),
+            new TwigFunction('component', [$this, 'renderComponent'], [
+                'is_safe' => ['html'],
+                'needs_environment' => true,
+            ]),
         ];
     }
 
@@ -55,38 +65,33 @@ class ComponentExtension extends AbstractExtension
     }
 
     /**
-     * @param  array<string, string>  $slots  захваченное тело тега {% component %} по имени слота
-     *                                        (сейчас только 'content'); у функции component() пуст
+     * @param  array<string, string>  $slots  захваченное тело тега {% component %} по имени слота;
+     *                                        у функции component() пуст
      */
-    public function renderComponent(string $name, array $props = [], array $slots = []): string
+    public function renderComponent(Environment $env, string $name, array $props = [], array $slots = []): string
     {
         $componentClass = $this->registry->resolve($name)
             ?? throw new InvalidArgumentException("Неизвестный twig-компонент: {$name}");
 
-        $this->assertKnownProps($componentClass, $name, $props);
-
         // стек вложенности — чтобы ошибка глубоко в дереве компонентов сразу
-        // называла всю цепочку, а не терялась в общем стеке Twig/Laravel
+        // называла всю цепочку, а не терялась в общем стеке Twig
         $this->renderStack[] = $name;
 
         try {
-            if (is_subclass_of($componentClass, Data::class)) {
-                $component = $componentClass::from($props);
-                $context = $component->all();
-            } elseif (is_subclass_of($componentClass, TwigComponent::class)) {
-                $component = app($componentClass, $props);
-                $context = $component->context();
-            } else {
-                throw new InvalidArgumentException(
-                    "Класс {$componentClass} компонента {$name} не реализует TwigComponent и не является Data"
-                );
-            }
+            $component = $this->factory->create($componentClass, $props);
+
+            // фабрика гарантирует один из двух видов: виджет или Data (у того контекст — all())
+            $context = $component instanceof TwigComponent
+                ? $component->context()
+                : $component->all();
 
             $this->assertNoReservedContextKeys($componentClass, $name, $context);
 
-            // template() отдаёт имя через view('...')->name() (литерал ради IDE-навигации);
-            // получение имени пренебрежимо на фоне сборки данных в context()
-            return view($component->template(), ['this' => $component, 'slots' => $slots] + $context)->render();
+            return $this->renderer->render(
+                $env,
+                $component->template(),
+                ['this' => $component, 'slots' => $slots] + $context,
+            );
         } catch (ComponentRenderingException $e) {
             // вложенный компонент уже описал себя (и цепочка в его сообщении полнее)
             throw $e;
@@ -108,8 +113,8 @@ class ComponentExtension extends AbstractExtension
     }
 
     /**
-     * Точка исходной ошибки для сообщения: Ignition показывает стек только
-     * внешнего исключения, до previous из интерфейса не добраться — файл:строку
+     * Точка исходной ошибки для сообщения: инструменты вроде Ignition показывают стек
+     * только внешнего исключения, до previous из интерфейса не добраться — файл:строку
      * оригинала впечатываем в текст.
      */
     private function exceptionOrigin(\Throwable $e): string
@@ -118,49 +123,13 @@ class ComponentExtension extends AbstractExtension
             return $e->getSourceContext()->getName().':'.$e->getTemplateLine();
         }
 
-        return Str::after($e->getFile(), base_path().DIRECTORY_SEPARATOR).':'.$e->getLine();
-    }
+        $file = $e->getFile();
 
-    /**
-     * Ключ props, не совпадающий ни с одним известным пропом компонента, — опечатка:
-     * и Data::from(), и контейнер молча игнорируют неизвестные ключи, из-за чего проп
-     * с дефолтом остаётся дефолтным без какой-либо ошибки.
-     *
-     * Для Data-компонентов известные имена берутся из структуры laravel-data (свойства +
-     * их MapInputName-алиасы, включая non-promoted) — reflection конструктора их не видит.
-     * Для виджетов — параметры конструктора; DI-зависимости в списке допустимых неизбежны
-     * (по имени параметра сервис от пропа не отличить), но попытка передать их пропом
-     * упадёт дальше на инстанцировании с внятной обёрткой.
-     */
-    protected function assertKnownProps(string $componentClass, string $name, array $props): void
-    {
-        if ($props === []) {
-            return;
+        if ($this->basePath !== null && str_starts_with($file, $this->basePath.DIRECTORY_SEPARATOR)) {
+            $file = substr($file, strlen($this->basePath) + 1);
         }
 
-        if (is_subclass_of($componentClass, Data::class)) {
-            $allowed = [];
-
-            foreach (app(DataConfig::class)->getDataClass($componentClass)->properties as $property) {
-                $allowed[] = $property->name;
-
-                if ($property->inputMappedName !== null) {
-                    $allowed[] = $property->inputMappedName;
-                }
-            }
-        } else {
-            $constructor = (new \ReflectionClass($componentClass))->getConstructor();
-            $allowed = $constructor
-                ? array_map(fn ($parameter) => $parameter->getName(), $constructor->getParameters())
-                : [];
-        }
-
-        if ($unknown = array_diff(array_keys($props), $allowed)) {
-            throw new InvalidArgumentException(sprintf(
-                'Неизвестные props [%s] у компонента %s; %s принимает: [%s]',
-                implode(', ', $unknown), $name, $componentClass, implode(', ', $allowed),
-            ));
-        }
+        return $file.':'.$e->getLine();
     }
 
     /**

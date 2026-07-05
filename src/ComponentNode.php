@@ -56,7 +56,7 @@ final class ComponentNode extends Node
         $compiler
             ->write('yield $this->env->getExtension(')
             ->repr(ComponentExtension::class)
-            ->raw(')->renderComponent(')
+            ->raw(')->renderComponent($this->env, ')
             ->subcompile($this->getNode('name'))
             ->raw(', ')
             ->subcompile($this->getNode('props'))
