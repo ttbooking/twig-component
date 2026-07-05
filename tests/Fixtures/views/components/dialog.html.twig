@@ -1,0 +1,5 @@
+<div class="dialog"{% if this.id %} id="{{ this.id }}"{% endif %}>
+    <div class="dialog-header">{% slot 'header' %}<h4 class="dialog-title">{{ this.title }}</h4>{% endslot %}</div>
+    <div class="dialog-body">{% slot %}{% endslot %}</div>
+    {% if slots.footer is defined %}<div class="dialog-footer">{% slot 'footer' %}{% endslot %}</div>{% endif %}
+</div>

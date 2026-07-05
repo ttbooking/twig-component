@@ -1,0 +1,61 @@
+{
+    "name": "ttbooking/twig-component",
+    "description": "Класс-компоненты и слоты для Twig в Laravel: тег {% component %}, {% slot %}, auto-discovery реестр с манифест-кэшем.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "twig",
+        "laravel",
+        "components",
+        "twig-components",
+        "slots",
+        "twig-extension",
+        "ui"
+    ],
+    "homepage": "https://github.com/ttbooking/twig-component",
+    "support": {
+        "issues": "https://github.com/ttbooking/twig-component/issues",
+        "source": "https://github.com/ttbooking/twig-component"
+    },
+    "authors": [
+        {
+            "name": "TTBooking",
+            "homepage": "https://github.com/ttbooking"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "twig/twig": "^3.0",
+        "illuminate/console": "^13.0",
+        "illuminate/container": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/view": "^13.0",
+        "spatie/laravel-data": "^4.0",
+        "symfony/finder": "^7.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "rcrowe/twigbridge": "^0.14",
+        "phpunit/phpunit": "^11.5 || ^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "TTBooking\\TwigComponent\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TTBooking\\TwigComponent\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "TTBooking\\TwigComponent\\TwigComponentServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
