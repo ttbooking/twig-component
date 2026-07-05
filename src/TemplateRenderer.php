@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace TTBooking\TwigComponent;
 
-use Twig\Environment;
-
 /**
  * Рендер шаблона компонента — точка интеграции с view-слоем приложения.
  *
- * Standalone-реализация (TwigTemplateRenderer) рендерит напрямую через переданное
- * Twig-окружение; Laravel-реализация (Laravel\LaravelViewRenderer) идёт через view(),
+ * Standalone-реализация (TwigTemplateRenderer) рендерит через Twig-окружение, переданное
+ * ей в конструктор; Laravel-реализация (Laravel\LaravelViewRenderer) идёт через view(),
  * чтобы работали Laravel-имена вьюх и конвенции TwigBridge.
  *
  * Что означает $template — определяет реализация (путь Twig-шаблона или view-имя);
@@ -21,5 +19,5 @@ interface TemplateRenderer
     /**
      * @param  array<string, mixed>  $context
      */
-    public function render(Environment $env, string $template, array $context): string;
+    public function render(string $template, array $context): string;
 }

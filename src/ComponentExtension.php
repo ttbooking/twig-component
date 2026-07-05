@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace TTBooking\TwigComponent;
 
 use InvalidArgumentException;
-use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -48,10 +47,7 @@ class ComponentExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('component', [$this, 'renderComponent'], [
-                'is_safe' => ['html'],
-                'needs_environment' => true,
-            ]),
+            new TwigFunction('component', [$this, 'renderComponent'], ['is_safe' => ['html']]),
         ];
     }
 
@@ -65,10 +61,13 @@ class ComponentExtension extends AbstractExtension
     }
 
     /**
+     * Публичный вход рендера: тег, функция component() и прямые вызовы из PHP
+     * (например, в тестах компонентов приложения) — все идут сюда.
+     *
      * @param  array<string, string>  $slots  захваченное тело тега {% component %} по имени слота;
      *                                        у функции component() пуст
      */
-    public function renderComponent(Environment $env, string $name, array $props = [], array $slots = []): string
+    public function renderComponent(string $name, array $props = [], array $slots = []): string
     {
         $componentClass = $this->registry->resolve($name)
             ?? throw new InvalidArgumentException("Неизвестный twig-компонент: {$name}");
@@ -88,7 +87,6 @@ class ComponentExtension extends AbstractExtension
             $this->assertNoReservedContextKeys($componentClass, $name, $context);
 
             return $this->renderer->render(
-                $env,
                 $component->template(),
                 ['this' => $component, 'slots' => $slots] + $context,
             );

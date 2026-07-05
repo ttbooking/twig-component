@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TTBooking\TwigComponent\Tests\Laravel;
 
+use TTBooking\TwigComponent\ComponentExtension;
 use TTBooking\TwigComponent\ComponentRegistry;
 use TTBooking\TwigComponent\ComponentRenderingException;
 use TTBooking\TwigComponent\Tests\Fixtures\Components\Note;
@@ -32,6 +33,15 @@ class IntegrationTest extends TestCase
 
         $this->assertStringContainsString('<div class="dialog-body"><p>тело</p></div>', $html);
         $this->assertStringContainsString('<div class="dialog-footer"><button>OK</button></div>', $html);
+    }
+
+    public function test_render_component_directly_without_twig_service(): void
+    {
+        // паттерн тестов компонентов в приложении: прямой вызов из PHP —
+        // не требует ни Twig-окружения, ни шаблона-обёртки
+        $html = app(ComponentExtension::class)->renderComponent('card', ['title' => 'T']);
+
+        $this->assertStringContainsString('card-title">T<', $html);
     }
 
     public function test_presentational_data_component_renders(): void

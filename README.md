@@ -53,7 +53,7 @@ $twig = new Environment(new FilesystemLoader(__DIR__.'/templates'));
 $twig->addExtension(new ComponentExtension(
     $registry,
     new NativeComponentFactory($psr11Container), // контейнер опционален: без него — props-only конструкторы
-    new TwigTemplateRenderer,
+    new TwigTemplateRenderer($twig),             // принимает и замыкание fn (): Environment
 ));
 ```
 
@@ -82,6 +82,13 @@ php artisan vendor:publish --tag=twig-component-config
 
 Провайдер сам биндит Laravel-реализации: виджеты собираются контейнером
 (`app($class, $props)`), шаблоны рендерятся через `view()`, доступны Data-компоненты.
+
+Компонент можно отрендерить и напрямую из PHP — удобно в тестах компонентов приложения;
+Twig-окружение для этого не нужно:
+
+```php
+$html = app(ComponentExtension::class)->renderComponent('ui:box', ['title' => 'Заказы']);
+```
 
 ### Другой фреймворк
 

@@ -40,7 +40,7 @@ abstract class CoreTestCase extends TestCase
         $twig->addExtension(new ComponentExtension(
             $this->registry(),
             new NativeComponentFactory($container),
-            new TwigTemplateRenderer,
+            new TwigTemplateRenderer($twig),
         ));
 
         return $twig;

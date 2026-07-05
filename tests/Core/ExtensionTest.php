@@ -12,44 +12,34 @@ use TTBooking\TwigComponent\NativeComponentFactory;
 use TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\Broken;
 use TTBooking\TwigComponent\Tests\Fixtures\CoreComponents\Note;
 use TTBooking\TwigComponent\Tests\Fixtures\Support\Greeter;
-use Twig\Environment;
 
 /** Расширение на голом Twig: резолв, валидация props, DI, обёртка ошибок, inline-функция. */
 class ExtensionTest extends CoreTestCase
 {
-    /** @return array{ComponentExtension, Environment} */
-    private function extension(): array
+    private function extension(): ComponentExtension
     {
-        $twig = $this->twig();
-
-        return [$twig->getExtension(ComponentExtension::class), $twig];
+        return $this->twig()->getExtension(ComponentExtension::class);
     }
 
     public function test_unknown_component_throws_invalid_argument(): void
     {
-        [$extension, $twig] = $this->extension();
-
         $this->expectException(InvalidArgumentException::class);
 
-        $extension->renderComponent($twig, 'no-such-component');
+        $this->extension()->renderComponent('no-such-component');
     }
 
     public function test_unknown_prop_key_throws_with_prop_name(): void
     {
-        [$extension, $twig] = $this->extension();
-
         $this->expectException(ComponentRenderingException::class);
         $this->expectExceptionMessageMatches('/badprop/');
 
-        $extension->renderComponent($twig, 'card', ['badprop' => 1]);
+        $this->extension()->renderComponent('card', ['badprop' => 1]);
     }
 
     public function test_error_in_component_is_wrapped_and_keeps_original(): void
     {
-        [$extension, $twig] = $this->extension();
-
         try {
-            $extension->renderComponent($twig, 'broken');
+            $this->extension()->renderComponent('broken');
             $this->fail('Ожидалась ComponentRenderingException');
         } catch (ComponentRenderingException $e) {
             $this->assertStringContainsString('broken', $e->getMessage());
@@ -80,11 +70,10 @@ class ExtensionTest extends CoreTestCase
 
     public function test_widget_with_dependency_fails_clearly_without_container(): void
     {
-        [$extension, $twig] = $this->extension(); // NativeComponentFactory без контейнера
-
         $this->expectException(ComponentRenderingException::class);
 
-        $extension->renderComponent($twig, 'profile', ['name' => 'Егор']);
+        // NativeComponentFactory без контейнера — Greeter нечем разрешить
+        $this->extension()->renderComponent('profile', ['name' => 'Егор']);
     }
 
     public function test_nested_component_error_message_names_full_chain(): void
@@ -100,12 +89,10 @@ class ExtensionTest extends CoreTestCase
 
     public function test_reserved_context_key_throws_instead_of_silent_override(): void
     {
-        [$extension, $twig] = $this->extension();
-
         $this->expectException(ComponentRenderingException::class);
         $this->expectExceptionMessageMatches('/зарезервированные ключи \[slots\]/u');
 
-        $extension->renderComponent($twig, 'clash');
+        $this->extension()->renderComponent('clash');
     }
 
     public function test_native_factory_rejects_data_components(): void
