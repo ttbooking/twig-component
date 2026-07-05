@@ -9,7 +9,7 @@ use TTBooking\TwigComponent\ComponentRegistry;
 
 /**
  * Удаляет манифест реестра twig-компонентов. Врезан в php artisan optimize:clear
- * (см. TemplateServiceProvider::optimizes).
+ * (см. TwigComponentServiceProvider::boot).
  */
 class ClearTwigComponent extends Command
 {

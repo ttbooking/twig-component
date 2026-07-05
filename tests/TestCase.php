@@ -35,6 +35,10 @@ abstract class TestCase extends Orchestra
         $config->set('twigbridge.twig.extension', 'html.twig');
         $config->set('twigbridge.extensions.enabled', [ComponentExtension::class]);
 
+        // без компилированного кэша: закэшированный в skeleton шаблон пережил бы правку
+        // парсера/узлов и тесты проверяли бы старую компиляцию
+        $config->set('twigbridge.twig.environment.cache', false);
+
         // шаблоны компонентов-фикстур
         $config->set('view.paths', [__DIR__.'/Fixtures/views']);
 

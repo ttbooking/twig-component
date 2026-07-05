@@ -59,7 +59,8 @@ class RegistryTest extends TestCase
 
     public function test_manifest_round_trips_identically(): void
     {
-        $manifest = tempnam(sys_get_temp_dir(), 'tcmanifest').'.php';
+        $base = tempnam(sys_get_temp_dir(), 'tcmanifest');
+        $manifest = $base.'.php';
 
         try {
             $built = $this->registry($manifest)->cache();
@@ -69,6 +70,61 @@ class RegistryTest extends TestCase
             $reader = $this->registry($manifest);
             $this->assertTrue($reader->isCached());
             $this->assertSame($built, $reader->map());
+        } finally {
+            @unlink($manifest);
+            @unlink($base); // сам tempnam-файл (без .php) тоже создаётся
+        }
+    }
+
+    public function test_corrupted_manifest_falls_back_to_live_scan(): void
+    {
+        $manifest = tempnam(sys_get_temp_dir(), 'tcbroken');
+        file_put_contents($manifest, "<?php\n\nreturn 'не массив';\n");
+
+        try {
+            $map = $this->registry($manifest)->map();
+
+            $this->assertSame(Card::class, $map['card'] ?? null);
+        } finally {
+            @unlink($manifest);
+        }
+    }
+
+    public function test_name_collision_throws_instead_of_silent_last_wins(): void
+    {
+        // классы, различающиеся только регистром FQCN, возможны на case-sensitive ФС;
+        // discoverClasses — protected seam, подменяем источник без файловой системы
+        $registry = new class(self::NS, '/unused', '/unused') extends ComponentRegistry
+        {
+            protected function discoverClasses(): array
+            {
+                return [
+                    'TTBooking\\TwigComponent\\Tests\\Fixtures\\Components\\UI\\Widget',
+                    'TTBooking\\TwigComponent\\Tests\\Fixtures\\Components\\Ui\\Widget',
+                ];
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/ui:widget/');
+
+        $registry->build();
+    }
+
+    public function test_container_registry_reads_manifest_instead_of_scanning(): void
+    {
+        // прод-путь: реестр из контейнера читает манифест из конфига, живой скан не выполняется
+        $manifest = tempnam(sys_get_temp_dir(), 'tcprod');
+        file_put_contents($manifest, "<?php\n\nreturn ['fake' => ".var_export(Note::class, true)."];\n");
+
+        config()->set('twig-component.manifest', $manifest);
+
+        try {
+            $registry = app(ComponentRegistry::class);
+
+            $this->assertSame(Note::class, $registry->resolve('fake'));
+            // 'card' есть только в живом скане — его отсутствие доказывает чтение манифеста
+            $this->assertNull($registry->resolve('card'));
         } finally {
             @unlink($manifest);
         }

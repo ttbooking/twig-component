@@ -25,7 +25,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "twig/twig": "^3.0",
+        "twig/twig": "^3.21",
         "illuminate/console": "^13.0",
         "illuminate/container": "^13.0",
         "illuminate/support": "^13.0",
@@ -47,6 +47,9 @@
         "psr-4": {
             "TTBooking\\TwigComponent\\Tests\\": "tests/"
         }
+    },
+    "scripts": {
+        "test": "phpunit"
     },
     "extra": {
         "laravel": {

@@ -96,4 +96,50 @@ class SlotTest extends TestCase
 
         $this->assertStringContainsString('№777', $html);
     }
+
+    public function test_whitespace_around_named_slots_does_not_suppress_default_fallback(): void
+    {
+        // реалистичное многострочное форматирование: переводы строк вокруг {% slot %}
+        // не должны становиться дефолтным слотом и перекрывать фолбэк шаблона
+        $html = $this->render(
+            "{% component 'dialog' with { title: 'T' } %}\n".
+            "    {% slot 'footer' %}<button>OK</button>{% endslot %}\n".
+            "{% endcomponent %}"
+        );
+
+        $this->assertStringContainsString('<em class="dialog-empty">пусто</em>', $html);
+        $this->assertStringContainsString('<div class="dialog-footer"><button>OK</button></div>', $html);
+    }
+
+    public function test_unnamed_slot_tag_provides_default_slot(): void
+    {
+        // {% slot %} без имени в теле вызова — явная передача дефолтного слота (аналог <template #default>)
+        $html = $this->render(
+            "{% component 'card' %}{% slot %}<p>явный дефолт</p>{% endslot %}{% endcomponent %}"
+        );
+
+        $this->assertStringContainsString('<div class="card-body"><p>явный дефолт</p></div>', $html);
+    }
+
+    public function test_mixing_loose_body_and_explicit_default_slot_is_syntax_error(): void
+    {
+        $this->expectException(\Twig\Error\SyntaxError::class);
+
+        $this->render(
+            "{% component 'card' %}<p>тело</p>{% slot %}<p>и явный дефолт</p>{% endslot %}{% endcomponent %}"
+        );
+    }
+
+    public function test_caller_variable_in_slot_is_escaped_exactly_once(): void
+    {
+        $html = $this->render(
+            "{% component 'card' %}{{ evil }}{% endcomponent %}",
+            ['evil' => '<script>alert(1)</script>'],
+        );
+
+        // экранируется в скоупе вызывающего; повторного эскейпа при вставке в шаблон компонента нет
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
+        $this->assertStringNotContainsString('<script>', $html);
+        $this->assertStringNotContainsString('&amp;lt;', $html);
+    }
 }

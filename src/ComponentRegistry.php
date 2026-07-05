@@ -10,15 +10,14 @@ use Spatie\LaravelData\Data;
 use Symfony\Component\Finder\Finder;
 
 /**
- * Auto-discovery класс-компонентов Twig (см. docs/adr/2026-07-02-twig-components.md).
+ * Auto-discovery класс-компонентов Twig.
  *
  * Имя в реестре выводится из FQCN относительно базового неймспейса компонентов приложения
  * ($namespace, напр. App\View\TwigComponents\) по конвенции:
  *  - namespace-зоны (сегменты до имени класса) — Str::lower, join через ':';
  *  - имя класса — Str::kebab.
  * Пример: <namespace>Corporate\AgencyParamMenu -> corporate:agency-param-menu.
- * Конвенция воспроизводит весь ручной реестр (проверено 26/26), поэтому override() пуст —
- * seam оставлен только для будущих нестандартных имён.
+ * Для нестандартных имён есть seam overrides().
  *
  * Базовый неймспейс и пути — специфика приложения, инжектятся из config/twig-component.php
  * (см. TwigComponentServiceProvider): пакет не знает про App\.
@@ -64,7 +63,18 @@ class ComponentRegistry
         $map = [];
 
         foreach ($this->discoverClasses() as $class) {
-            $map[$this->deriveName($class)] = $class;
+            $name = $this->deriveName($class);
+
+            // возможно на case-sensitive ФС (классы, различающиеся только регистром) —
+            // молчаливый last-wins маскировал бы потерю компонента
+            if (isset($map[$name])) {
+                throw new \RuntimeException(sprintf(
+                    'Коллизия имени twig-компонента «%s»: %s и %s выводятся в одно имя.',
+                    $name, $map[$name], $class,
+                ));
+            }
+
+            $map[$name] = $class;
         }
 
         // override перебивает конвенцию (нестандартные имена, тестовые фейки)
@@ -80,12 +90,21 @@ class ComponentRegistry
     {
         $map = $this->build();
 
+        if (! is_dir($dir = \dirname($this->manifestPath))) {
+            mkdir($dir, 0755, true);
+        }
+
+        // через tmp+rename: конкурентный процесс не прочитает полузаписанный манифест
+        $tmp = $this->manifestPath.'.'.uniqid('', true).'.tmp';
+
         file_put_contents(
-            $this->manifestPath,
+            $tmp,
             "<?php\n\n// Скомпилированный реестр twig-компонентов. Не редактировать вручную —\n"
             ."// пересобирается командой twig-component:cache (входит в php artisan optimize).\n\n"
             .'return '.var_export($map, true).";\n",
         );
+
+        rename($tmp, $this->manifestPath);
 
         return $this->map = $map;
     }
@@ -109,7 +128,14 @@ class ComponentRegistry
      */
     private function loadManifest(): ?array
     {
-        return is_file($this->manifestPath) ? require $this->manifestPath : null;
+        if (! is_file($this->manifestPath)) {
+            return null;
+        }
+
+        $map = require $this->manifestPath;
+
+        // повреждённый/чужой файл по пути манифеста → игнорируем, падаём на живой скан
+        return is_array($map) ? $map : null;
     }
 
     /**
@@ -139,10 +165,11 @@ class ComponentRegistry
 
     /**
      * Инстанцируемые классы-компоненты в неймспейсе: виджеты (TwigComponent) и презентационные (Data).
+     * Protected — seam для тестов (подмена источника классов без файловой системы).
      *
      * @return list<class-string>
      */
-    private function discoverClasses(): array
+    protected function discoverClasses(): array
     {
         if (! is_dir($this->componentsPath)) {
             return [];

@@ -9,7 +9,7 @@ use TTBooking\TwigComponent\ComponentRegistry;
 
 /**
  * Компилирует реестр twig-компонентов в манифест bootstrap/cache/twig-component.php.
- * Врезан в php artisan optimize (см. TemplateServiceProvider::optimizes).
+ * Врезан в php artisan optimize (см. TwigComponentServiceProvider::boot).
  */
 class CacheTwigComponent extends Command
 {

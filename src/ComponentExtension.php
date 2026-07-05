@@ -7,11 +7,12 @@ namespace TTBooking\TwigComponent;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Support\DataConfig;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * Расширение Twig для класс-компонентов (см. docs/adr/2026-07-02-twig-components.md).
+ * Расширение Twig для класс-компонентов.
  *
  * Два вида компонентов:
  *  - виджет (TwigComponent) — зависимости из контейнера, сам собирает данные;
@@ -81,6 +82,8 @@ class ComponentExtension extends AbstractExtension
                 );
             }
 
+            $this->assertNoReservedContextKeys($componentClass, $name, $context);
+
             // template() отдаёт имя через view('...')->name() (литерал ради IDE-навигации);
             // получение имени пренебрежимо на фоне сборки данных в context()
             return view($component->template(), ['this' => $component, 'slots' => $slots] + $context)->render();
@@ -119,9 +122,15 @@ class ComponentExtension extends AbstractExtension
     }
 
     /**
-     * Ключ props, не совпадающий ни с одним параметром конструктора компонента, — опечатка:
+     * Ключ props, не совпадающий ни с одним известным пропом компонента, — опечатка:
      * и Data::from(), и контейнер молча игнорируют неизвестные ключи, из-за чего проп
      * с дефолтом остаётся дефолтным без какой-либо ошибки.
+     *
+     * Для Data-компонентов известные имена берутся из структуры laravel-data (свойства +
+     * их MapInputName-алиасы, включая non-promoted) — reflection конструктора их не видит.
+     * Для виджетов — параметры конструктора; DI-зависимости в списке допустимых неизбежны
+     * (по имени параметра сервис от пропа не отличить), но попытка передать их пропом
+     * упадёт дальше на инстанцировании с внятной обёрткой.
      */
     protected function assertKnownProps(string $componentClass, string $name, array $props): void
     {
@@ -129,15 +138,42 @@ class ComponentExtension extends AbstractExtension
             return;
         }
 
-        $constructor = (new \ReflectionClass($componentClass))->getConstructor();
-        $allowed = $constructor
-            ? array_map(fn ($parameter) => $parameter->getName(), $constructor->getParameters())
-            : [];
+        if (is_subclass_of($componentClass, Data::class)) {
+            $allowed = [];
+
+            foreach (app(DataConfig::class)->getDataClass($componentClass)->properties as $property) {
+                $allowed[] = $property->name;
+
+                if ($property->inputMappedName !== null) {
+                    $allowed[] = $property->inputMappedName;
+                }
+            }
+        } else {
+            $constructor = (new \ReflectionClass($componentClass))->getConstructor();
+            $allowed = $constructor
+                ? array_map(fn ($parameter) => $parameter->getName(), $constructor->getParameters())
+                : [];
+        }
 
         if ($unknown = array_diff(array_keys($props), $allowed)) {
             throw new InvalidArgumentException(sprintf(
-                'Неизвестные props [%s] у компонента %s; конструктор %s принимает: [%s]',
+                'Неизвестные props [%s] у компонента %s; %s принимает: [%s]',
                 implode(', ', $unknown), $name, $componentClass, implode(', ', $allowed),
+            ));
+        }
+    }
+
+    /**
+     * Ключи `this` и `slots` в контексте рендера зарезервированы за машинерией (экземпляр
+     * компонента и переданные слоты): одноимённый ключ из context()/пропов молча перекрылся
+     * бы — вместо тихой потери данных падаем с внятным сообщением.
+     */
+    protected function assertNoReservedContextKeys(string $componentClass, string $name, array $context): void
+    {
+        if ($reserved = array_intersect(['this', 'slots'], array_keys($context))) {
+            throw new InvalidArgumentException(sprintf(
+                'Контекст компонента %s (%s) использует зарезервированные ключи [%s] — переименуйте их.',
+                $name, $componentClass, implode(', ', $reserved),
             ));
         }
     }

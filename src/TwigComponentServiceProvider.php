@@ -9,7 +9,7 @@ use TTBooking\TwigComponent\Console\CacheTwigComponent;
 use TTBooking\TwigComponent\Console\ClearTwigComponent;
 
 /**
- * Регистрация машинерии twig-компонентов (см. docs/adr/2026-07-05-twig-components-package.md).
+ * Регистрация машинерии twig-компонентов.
  *
  * Само Twig-расширение (ComponentExtension) подключается приложением в config/twigbridge.php —
  * TwigBridge резолвит его из контейнера, автовайря сюда забинженный ComponentRegistry.
