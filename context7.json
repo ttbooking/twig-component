@@ -1,0 +1,14 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "TTBooking Twig Component",
+  "description": "Класс-компоненты и слоты для Twig: тег {% component %}, функция component(), слоты в стиле Vue 3 и auto-discovery реестр компонентов с манифест-кэшем. Ядро фреймворк-нейтрально; Laravel-интеграция опциональна.",
+  "folders": ["docs"],
+  "excludeFolders": ["src", "tests", "config", "vendor", "var"],
+  "excludeFiles": [],
+  "rules": [
+    "Виджет-компонент реализует интерфейс TTBooking\\TwigComponent\\TwigComponent и определяет три метода: __construct() с пропсами, template() и context().",
+    "В шаблоне компонента экземпляр доступен как `this`, переданные слоты — как `slots`; ключи `this` и `slots` в context() зарезервированы.",
+    "Имя компонента выводится из класса по конвенции: App\\View\\TwigComponents\\UI\\Box -> 'ui:box'.",
+    "Неизвестный ключ props у компонента приводит к ошибке, а не к молчаливому игнорированию."
+  ]
+}

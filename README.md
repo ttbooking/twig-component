@@ -1,5 +1,11 @@
 # TTBooking Twig Component
 
+[![Tests](https://img.shields.io/github/actions/workflow/status/ttbooking/twig-component/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/ttbooking/twig-component/actions/workflows/tests.yml)
+[![Latest Stable Version](https://img.shields.io/packagist/v/ttbooking/twig-component.svg?style=flat-square)](https://packagist.org/packages/ttbooking/twig-component)
+[![Total Downloads](https://img.shields.io/packagist/dt/ttbooking/twig-component.svg?style=flat-square)](https://packagist.org/packages/ttbooking/twig-component)
+[![PHP Version](https://img.shields.io/packagist/php-v/ttbooking/twig-component.svg?style=flat-square)](https://packagist.org/packages/ttbooking/twig-component)
+[![License](https://img.shields.io/packagist/l/ttbooking/twig-component.svg?style=flat-square)](LICENSE)
+
 Класс-компоненты и слоты для Twig: тег `{% component %}`, функция `component()`,
 слоты `{% slot %}` в стиле Vue 3 и auto-discovery реестр компонентов с манифест-кэшем.
 
@@ -206,6 +212,16 @@ vendor/bin/phpunit --testsuite Laravel # интеграционный слой �
 ```
 
 БД не требуется.
+
+## Документация
+
+Подробные гайды — в папке [`docs/`](docs):
+
+- [Начало работы](docs/getting-started.md) — установка, standalone-bootstrap, первый компонент.
+- [Компоненты](docs/components.md) — виджеты, пропсы и `this`, `context()`, DI, функция `component()`, конвенция имён.
+- [Слоты](docs/slots.md) — дефолтный и именованные слоты, правила передачи, проброс во вложенный компонент.
+- [Laravel](docs/laravel.md) — ServiceProvider, конфиг, Data-компоненты, artisan-команды, рендер в тестах.
+- [Рецепты](docs/recipes.md) — готовые примеры: box со слотом, modal с именованными слотами, select с логикой в `context()`.
 
 ## Лицензия
 
