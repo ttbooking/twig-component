@@ -1,0 +1,9 @@
+# Что НЕ попадает в dist-архив (composer install --prefer-dist).
+# docs/ намеренно НЕ игнорируется — документация едет в vendor вместе с пакетом.
+
+/.github            export-ignore
+/tests              export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/phpunit.xml.dist   export-ignore
+/context7.json      export-ignore
