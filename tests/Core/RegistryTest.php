@@ -47,6 +47,20 @@ class RegistryTest extends CoreTestCase
         }
     }
 
+    public function test_namespace_without_trailing_backslash_is_normalized(): void
+    {
+        // забытый хвостовой '\' в конфиге тихо давал бы пустой реестр (склеенные FQCN
+        // не существуют) — нормализуем в конструкторе
+        $registry = new ComponentRegistry(
+            rtrim(self::NS, '\\'),
+            __DIR__.'/../Fixtures/CoreComponents',
+            sys_get_temp_dir().'/tc-core-'.uniqid().'.php',
+        );
+
+        $this->assertSame(Card::class, $registry->resolve('card'));
+        $this->assertSame('ui:widget', $registry->deriveName(Widget::class));
+    }
+
     public function test_manifest_round_trips_identically(): void
     {
         $base = tempnam(sys_get_temp_dir(), 'tcmanifest');

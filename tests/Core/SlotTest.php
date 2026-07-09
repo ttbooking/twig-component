@@ -120,6 +120,18 @@ class SlotTest extends CoreTestCase
         );
     }
 
+    public function test_duplicate_named_slot_is_syntax_error(): void
+    {
+        // молчаливый last-wins терял бы первое тело — падаем на компиляции
+        $this->expectException(\Twig\Error\SyntaxError::class);
+        $this->expectExceptionMessageMatches('/«footer» передан дважды/u');
+
+        $this->render(
+            "{% component 'dialog' with { title: 'T' } %}x".
+            "{% slot 'footer' %}первый{% endslot %}{% slot 'footer' %}второй{% endslot %}{% endcomponent %}"
+        );
+    }
+
     public function test_caller_variable_in_slot_is_escaped_exactly_once(): void
     {
         $html = $this->render(

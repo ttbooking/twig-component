@@ -64,8 +64,10 @@ class ComponentExtension extends AbstractExtension
      * Публичный вход рендера: тег, функция component() и прямые вызовы из PHP
      * (например, в тестах компонентов приложения) — все идут сюда.
      *
-     * @param  array<string, string>  $slots  захваченное тело тега {% component %} по имени слота;
-     *                                        у функции component() пуст
+     * @param  array<string, string|\Twig\Markup>  $slots  захваченное тело тега {% component %} по имени
+     *                                                     слота (Markup: уже экранировано в скоупе
+     *                                                     вызывающего, вставляется без повторного эскейпа);
+     *                                                     у функции component() пуст
      */
     public function renderComponent(string $name, array $props = [], array $slots = []): string
     {

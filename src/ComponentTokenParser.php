@@ -67,7 +67,18 @@ final class ComponentTokenParser extends AbstractTokenParser
 
         foreach ($children as $child) {
             if ($child instanceof SlotNode) {
-                $named[$child->getAttribute('name')] = $child->getNode('body');
+                $slotName = $child->getAttribute('name');
+
+                // дубликат имени — ошибка, как и везде в пакете: молчаливый last-wins
+                // терял бы первое тело без какого-либо сигнала
+                if (isset($named[$slotName])) {
+                    throw new SyntaxError(
+                        "Слот «{$slotName}» передан дважды в одном вызове {% component %} — оставьте один.",
+                        $lineno,
+                    );
+                }
+
+                $named[$slotName] = $child->getNode('body');
             } else {
                 $loose[] = $child;
             }

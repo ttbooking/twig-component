@@ -28,11 +28,17 @@ class ComponentRegistry
     /** @var array<string, class-string>|null */
     private ?array $map = null;
 
+    private readonly string $namespace;
+
     public function __construct(
-        private readonly string $namespace,
+        string $namespace,
         private readonly string $componentsPath,
         private readonly string $manifestPath,
-    ) {}
+    ) {
+        // нормализуем хвостовой '\': без него конфиг тихо давал бы пустой реестр
+        // (склеенные FQCN вида App\View\TwigComponentsCard не существуют)
+        $this->namespace = rtrim($namespace, '\\').'\\';
+    }
 
     /**
      * Карта «имя → класс». Мемоизируется на процесс: сначала манифест, иначе живой скан.
@@ -87,21 +93,26 @@ class ComponentRegistry
     {
         $map = $this->build();
 
-        if (! is_dir($dir = \dirname($this->manifestPath))) {
-            mkdir($dir, 0755, true);
+        // @mkdir + повторный is_dir: конкурентный процесс мог создать каталог между проверками
+        if (! is_dir($dir = \dirname($this->manifestPath)) && ! @mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            throw new \RuntimeException("Не удалось создать каталог манифеста: {$dir}");
         }
 
         // через tmp+rename: конкурентный процесс не прочитает полузаписанный манифест
         $tmp = $this->manifestPath.'.'.uniqid('', true).'.tmp';
 
-        file_put_contents(
+        $written = file_put_contents(
             $tmp,
             "<?php\n\n// Скомпилированный реестр twig-компонентов. Не редактировать вручную —\n"
             ."// пересобирается командой twig-component:cache (входит в php artisan optimize).\n\n"
             .'return '.var_export($map, true).";\n",
         );
 
-        rename($tmp, $this->manifestPath);
+        if ($written === false || ! rename($tmp, $this->manifestPath)) {
+            @unlink($tmp);
+
+            throw new \RuntimeException("Не удалось записать манифест: {$this->manifestPath}");
+        }
 
         return $this->map = $map;
     }

@@ -19,9 +19,9 @@ class ClearTwigComponent extends Command
 
     public function handle(ComponentRegistry $registry): int
     {
-        $registry->clearCache();
-
-        $this->components->info('Манифест реестра twig-компонентов удалён');
+        $this->components->info($registry->clearCache()
+            ? 'Манифест реестра twig-компонентов удалён'
+            : 'Манифеста реестра twig-компонентов нет — удалять нечего');
 
         return self::SUCCESS;
     }

@@ -37,7 +37,11 @@ class TwigComponentServiceProvider extends ServiceProvider
         $this->app->bind(ComponentFactory::class, LaravelComponentFactory::class);
         $this->app->bind(TemplateRenderer::class, LaravelViewRenderer::class);
 
-        $this->app->bind(ComponentExtension::class, static fn ($app) => new ComponentExtension(
+        // singleton: у расширения есть renderStack (цепочка имён для сообщений об ошибках) —
+        // прямые вызовы app(ComponentExtension::class)->renderComponent() должны попадать
+        // в тот же экземпляр, что живёт в Twig-окружении, иначе цепочка вложенности рвётся.
+        // Стек всегда пустеет в finally, так что состояние между рендерами не копится.
+        $this->app->singleton(ComponentExtension::class, static fn ($app) => new ComponentExtension(
             $app[ComponentRegistry::class],
             $app[ComponentFactory::class],
             $app[TemplateRenderer::class],

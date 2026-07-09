@@ -44,6 +44,16 @@ class IntegrationTest extends TestCase
         $this->assertStringContainsString('card-title">T<', $html);
     }
 
+    public function test_extension_is_shared_between_container_and_twig_environment(): void
+    {
+        // singleton: у расширения есть renderStack (цепочка имён в ошибках) — прямой
+        // app(...)->renderComponent() и рендер внутри Twig должны видеть один стек
+        $this->assertSame(
+            app(ComponentExtension::class),
+            app('twig')->getExtension(ComponentExtension::class),
+        );
+    }
+
     public function test_presentational_data_component_renders(): void
     {
         // ветка Data: Note::from($props) -> all() -> контекст (text доступен напрямую)
