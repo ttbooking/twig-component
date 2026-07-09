@@ -15,7 +15,7 @@ composer require ttbooking/twig-component
 
 Требования:
 
-- PHP ≥ 8.2
+- PHP ≥ 8.3
 - Twig ≥ 3.21
 
 ## Standalone (голый Twig)
